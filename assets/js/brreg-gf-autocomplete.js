@@ -92,6 +92,14 @@
       if (cityInput) setFieldUneditable(cityInput);
     }
 
+    // Wrap input so dropdown can position below
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'relative';
+
+    const parent = companyInput.parentNode;
+    parent.insertBefore(wrapper, companyInput);
+    wrapper.appendChild(companyInput);
+
     // Build dropdown
     const dropdown = document.createElement('div');
     dropdown.className = 'brreg-gf-dropdown';
@@ -100,21 +108,57 @@
     dropdown.style.background = '#fff';
     dropdown.style.border = '1px solid #ccc';
     dropdown.style.borderRadius = '6px';
-    dropdown.style.width = companyInput.offsetWidth + 'px';
     dropdown.style.display = 'none';
     dropdown.style.maxHeight = '220px';
     dropdown.style.overflowY = 'auto';
     dropdown.style.marginTop = '4px';
     dropdown.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
 
-    // Wrap input so dropdown can position below
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'relative';
-
-    const parent = companyInput.parentNode;
-    parent.insertBefore(wrapper, companyInput);
-    wrapper.appendChild(companyInput);
     wrapper.appendChild(dropdown);
+
+    // Function to calculate and set dropdown width dynamically
+    // This ensures we get accurate width even if calculated before input is fully rendered
+    function updateDropdownWidth() {
+      // Try multiple methods to get the input width
+      let inputWidth = 0;
+      
+      // Method 1: offsetWidth (includes padding and border)
+      if (companyInput.offsetWidth > 0) {
+        inputWidth = companyInput.offsetWidth;
+      }
+      // Method 2: getBoundingClientRect (actual rendered width)
+      else {
+        const rect = companyInput.getBoundingClientRect();
+        if (rect.width > 0) {
+          inputWidth = rect.width;
+        }
+      }
+      
+      // Method 3: Try wrapper or parent container width
+      if (inputWidth === 0 || inputWidth < 200) {
+        const wrapperWidth = wrapper.offsetWidth || wrapper.getBoundingClientRect().width;
+        if (wrapperWidth > 0) {
+          inputWidth = wrapperWidth;
+        }
+      }
+      
+      // Method 4: Try parent container (Gravity Forms field wrapper)
+      if (inputWidth === 0 || inputWidth < 200) {
+        const parentEl = companyInput.closest('.gfield') || companyInput.closest('li');
+        if (parentEl) {
+          const parentWidth = parentEl.offsetWidth || parentEl.getBoundingClientRect().width;
+          if (parentWidth > 0) {
+            inputWidth = parentWidth;
+          }
+        }
+      }
+      
+      // Ensure minimum width for usability (300px as you found works)
+      const finalWidth = Math.max(inputWidth, 300);
+      dropdown.style.width = finalWidth + 'px';
+      
+      return finalWidth;
+    }
 
     // Debounce helper
     let debounceTimer;
@@ -159,6 +203,9 @@
           });
 
           dropdown.innerHTML = '';
+
+          // Update dropdown width before showing (recalculate in case layout changed)
+          updateDropdownWidth();
 
           // Add focus state to input when dropdown is shown
           companyInput.style.borderColor = '#2271b1';

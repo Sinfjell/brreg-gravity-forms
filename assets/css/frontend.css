@@ -1,0 +1,7 @@
+/* Brreg Gravity Forms Frontend Styles */
+
+/* Fallback min-width - JavaScript handles dynamic width calculation */
+.brreg-gf-dropdown {
+    min-width: 300px;
+}
+

@@ -343,6 +343,14 @@ class Brreg_GravityForms_Autocomplete {
 
         $handle = 'brreg-gf-autocomplete';
 
+        // Enqueue frontend styles
+        wp_enqueue_style(
+            'brreg-gf-frontend',
+            plugin_dir_url( __FILE__ ) . 'assets/css/frontend.css',
+            array(),
+            '0.1.0'
+        );
+
         wp_enqueue_script(
             $handle,
             plugin_dir_url( __FILE__ ) . 'assets/js/brreg-gf-autocomplete.js',

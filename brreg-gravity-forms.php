@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Brønnøysund + Gravity Forms Autocomplete
  * Description: Autocomplete company info from Brønnøysund by using CSS classes on Gravity Forms fields.
- * Author: SimplyLearn / Nettsmeds
+ * Author: Nettsmed AS
  * Version: 0.1.0
  */
 

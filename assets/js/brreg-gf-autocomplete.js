@@ -90,10 +90,13 @@
     dropdown.style.zIndex = '999';
     dropdown.style.background = '#fff';
     dropdown.style.border = '1px solid #ccc';
+    dropdown.style.borderRadius = '6px';
     dropdown.style.width = companyInput.offsetWidth + 'px';
     dropdown.style.display = 'none';
     dropdown.style.maxHeight = '220px';
     dropdown.style.overflowY = 'auto';
+    dropdown.style.marginTop = '4px';
+    dropdown.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
 
     // Wrap input so dropdown can position below
     const wrapper = document.createElement('div');
@@ -135,6 +138,9 @@
         .then(function (data) {
           if (!data._embedded || !data._embedded.enheter) {
             dropdown.style.display = 'none';
+            // Remove focus state when no results
+            companyInput.style.borderColor = '';
+            companyInput.style.boxShadow = '';
             return;
           }
 
@@ -145,11 +151,25 @@
 
           dropdown.innerHTML = '';
 
-          companies.forEach(function (company) {
+          // Add focus state to input when dropdown is shown
+          companyInput.style.borderColor = '#2271b1';
+          companyInput.style.boxShadow = '0 0 0 1px #2271b1';
+
+          companies.forEach(function (company, index) {
             const optionDiv = document.createElement('div');
-            optionDiv.style.padding = '5px 8px';
+            optionDiv.className = 'brreg-gf-dropdown-item';
+            optionDiv.style.padding = '10px 12px';
             optionDiv.style.cursor = 'pointer';
-            optionDiv.style.borderBottom = '1px solid #eee';
+            optionDiv.style.fontSize = '13px';
+            optionDiv.style.lineHeight = '1.4';
+            optionDiv.style.transition = 'background-color 0.15s ease';
+            optionDiv.style.backgroundColor = '#fff';
+            
+            // Only add border-bottom if not the last item
+            if (index < companies.length - 1) {
+              optionDiv.style.borderBottom = '1px solid #f0f0f0';
+            }
+            
             optionDiv.textContent = company.navn + ' (' + company.organisasjonsnummer + ')';
 
             optionDiv.addEventListener('mouseover', function () {
@@ -202,6 +222,9 @@
 
               dropdown.innerHTML = '';
               dropdown.style.display = 'none';
+              // Remove focus state after selection
+              companyInput.style.borderColor = '';
+              companyInput.style.boxShadow = '';
             });
 
             dropdown.appendChild(optionDiv);
@@ -212,6 +235,9 @@
         .catch(function (error) {
           console.error('[BrregGF] Brønnøysund request failed:', error);
           dropdown.style.display = 'none';
+          // Remove focus state on error
+          companyInput.style.borderColor = '';
+          companyInput.style.boxShadow = '';
         });
     }
 
@@ -220,6 +246,9 @@
       const term = companyInput.value.trim();
       if (term.length < minChars) {
         dropdown.style.display = 'none';
+        // Remove focus state when dropdown is hidden
+        companyInput.style.borderColor = '';
+        companyInput.style.boxShadow = '';
         return;
       }
       debounce(function () {
@@ -231,6 +260,9 @@
     document.addEventListener('click', function (evt) {
       if (!wrapper.contains(evt.target)) {
         dropdown.style.display = 'none';
+        // Remove focus state when dropdown is hidden
+        companyInput.style.borderColor = '';
+        companyInput.style.boxShadow = '';
       }
     });
 

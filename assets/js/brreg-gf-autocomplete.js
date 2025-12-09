@@ -65,7 +65,20 @@
     const zipInput   = outputs.zip    ? findInputByWrapperClass(outputs.zip)     : null;
     const cityInput  = outputs.city   ? findInputByWrapperClass(outputs.city)    : null;
 
-    // Make org field readonly if present
+    // Check if fields should be made uneditable
+    const makeFieldsUneditable = profile.make_fields_uneditable === true || profile.make_fields_uneditable === '1' || profile.make_fields_uneditable === 1;
+
+    // Function to set field as uneditable
+    function setFieldUneditable(input) {
+      if (!input) return;
+      input.setAttribute('readonly', true);
+      input.setAttribute('disabled', true);
+      input.style.backgroundColor = '#f0f0f0';
+      input.style.cursor = 'not-allowed';
+    }
+
+    // Make org field readonly by default (always, regardless of uneditable setting)
+    // Other fields will be made uneditable only after population if the setting is enabled
     if (orgInput) {
       orgInput.setAttribute('readonly', true);
     }
@@ -155,6 +168,10 @@
               if (orgInput) {
                 orgInput.value = company.organisasjonsnummer;
                 orgInput.dispatchEvent(new Event('change'));
+                // Apply uneditable state after setting value if needed
+                if (makeFieldsUneditable) {
+                  setFieldUneditable(orgInput);
+                }
               }
 
               // Address fields
@@ -163,14 +180,23 @@
                 if (streetInput) {
                   streetInput.value = addr.street;
                   streetInput.dispatchEvent(new Event('change'));
+                  if (makeFieldsUneditable) {
+                    setFieldUneditable(streetInput);
+                  }
                 }
                 if (zipInput) {
                   zipInput.value = addr.zip;
                   zipInput.dispatchEvent(new Event('change'));
+                  if (makeFieldsUneditable) {
+                    setFieldUneditable(zipInput);
+                  }
                 }
                 if (cityInput) {
                   cityInput.value = addr.city;
                   cityInput.dispatchEvent(new Event('change'));
+                  if (makeFieldsUneditable) {
+                    setFieldUneditable(cityInput);
+                  }
                 }
               }
 

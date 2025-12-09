@@ -81,6 +81,35 @@
       input.style.opacity = '0.7';
     }
 
+    // Function to make field editable again (reverse of setFieldUneditable)
+    function setFieldEditable(input) {
+      if (!input) return;
+      input.removeAttribute('readonly');
+      input.style.backgroundColor = '';
+      input.style.cursor = '';
+      input.style.opacity = '';
+    }
+
+    // Function to clear all output fields
+    function clearOutputFields() {
+      if (orgInput) {
+        orgInput.value = '';
+        orgInput.dispatchEvent(new Event('change'));
+      }
+      if (streetInput) {
+        streetInput.value = '';
+        streetInput.dispatchEvent(new Event('change'));
+      }
+      if (zipInput) {
+        zipInput.value = '';
+        zipInput.dispatchEvent(new Event('change'));
+      }
+      if (cityInput) {
+        cityInput.value = '';
+        cityInput.dispatchEvent(new Event('change'));
+      }
+    }
+
     // If "Make fields uneditable" is enabled, check when to make them uneditable
     // If "make_uneditable_after_population" is NOT ticked, make fields uneditable at load
     // If "make_uneditable_after_population" IS ticked, fields will be made uneditable after population
@@ -292,6 +321,27 @@
     // Input listener
     companyInput.addEventListener('input', function () {
       const term = companyInput.value.trim();
+      
+      // If field is cleared (empty), clear output fields and make them editable again if needed
+      if (term.length === 0) {
+        clearOutputFields();
+        
+        // If "Make fields uneditable" is enabled AND "make_uneditable_after_population" is ticked,
+        // make fields editable again when company name is cleared
+        if (makeFieldsUneditable && makeUneditableAfterPopulation) {
+          if (orgInput) setFieldEditable(orgInput);
+          if (streetInput) setFieldEditable(streetInput);
+          if (zipInput) setFieldEditable(zipInput);
+          if (cityInput) setFieldEditable(cityInput);
+        }
+        
+        dropdown.style.display = 'none';
+        // Remove focus state when dropdown is hidden
+        companyInput.style.borderColor = '';
+        companyInput.style.boxShadow = '';
+        return;
+      }
+      
       if (term.length < minChars) {
         dropdown.style.display = 'none';
         // Remove focus state when dropdown is hidden

@@ -18,6 +18,11 @@
     observer.observe(document.body, {
       childList: true,
       subtree: true,
+      // Multi-page GF often toggles visibility via class/style changes,
+      // without inserting/removing nodes. Observe attributes so we re-init
+      // when page 2/3 becomes visible.
+      attributes: true,
+      attributeFilter: ['class', 'style'],
     });
   });
 

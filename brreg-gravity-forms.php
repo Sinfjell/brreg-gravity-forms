@@ -232,6 +232,9 @@ class Brreg_GravityForms_Autocomplete {
             return;
         }
 
+        // Run migration if needed (converts old global settings to per-field)
+        self::maybe_migrate_settings();
+
         $settings = get_option( self::OPTION_NAME, self::get_default_config() );
         ?>
         <div class="wrap brreg-gf-autocomplete-settings">
@@ -420,7 +423,7 @@ class Brreg_GravityForms_Autocomplete {
                                     </tbody>
                                 </table>
                                 <p class="description">
-                                    <?php esc_html_e( 'Configure which fields should be made uneditable (read-only). "Make Uneditable" locks the field at page load. "Uneditable After Population" locks the field only after a company is selected (and unlocks when cleared).', 'brreg-gf-autocomplete' ); ?>
+                                    <?php esc_html_e( 'Configure which fields should be made uneditable (read-only). Check "Make Uneditable" to enable locking for a field. By default, fields are locked at page load. Additionally check "Uneditable After Population" to delay locking until a company is selected (fields unlock when cleared).', 'brreg-gf-autocomplete' ); ?>
                                 </p>
                             </td>
                         </tr>

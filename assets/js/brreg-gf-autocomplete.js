@@ -82,16 +82,24 @@
         const streetInput = outputs.street ? findInputByWrapperClass(outputs.street, root) : null;
         const zipInput = outputs.zip ? findInputByWrapperClass(outputs.zip, root) : null;
         const cityInput = outputs.city ? findInputByWrapperClass(outputs.city, root) : null;
+        const emailInput = outputs.email ? findInputByWrapperClass(outputs.email, root) : null;
 
-        // Check if fields should be made uneditable
-        const makeFieldsUneditable =
-          profile.make_fields_uneditable === true ||
-          profile.make_fields_uneditable === '1' ||
-          profile.make_fields_uneditable === 1;
-        const makeUneditableAfterPopulation =
-          profile.make_uneditable_after_population === true ||
-          profile.make_uneditable_after_population === '1' ||
-          profile.make_uneditable_after_population === 1;
+        // Per-field settings for uneditable control
+        const fieldSettings = profile.field_settings || {};
+
+        // Helper function to check if a field should be uneditable
+        function shouldBeUneditable(fieldKey) {
+          const setting = fieldSettings[fieldKey];
+          if (!setting) return false;
+          return setting.uneditable === true || setting.uneditable === '1' || setting.uneditable === 1;
+        }
+
+        // Helper function to check if a field should be uneditable only after population
+        function shouldBeUneditableAfterPopulation(fieldKey) {
+          const setting = fieldSettings[fieldKey];
+          if (!setting) return false;
+          return setting.uneditable_after_population === true || setting.uneditable_after_population === '1' || setting.uneditable_after_population === 1;
+        }
 
         // Function to set field as uneditable
         // Note: Using readonly instead of disabled so values are submitted with the form
@@ -132,17 +140,28 @@
             cityInput.value = '';
             cityInput.dispatchEvent(new Event('change'));
           }
+          if (emailInput) {
+            emailInput.value = '';
+            emailInput.dispatchEvent(new Event('change'));
+          }
         }
 
-        // If "Make fields uneditable" is enabled, check when to make them uneditable
-        // If "make_uneditable_after_population" is NOT ticked, make fields uneditable at load
-        // If "make_uneditable_after_population" IS ticked, fields will be made uneditable after population
-        if (makeFieldsUneditable && !makeUneditableAfterPopulation) {
-          // Make all output fields uneditable immediately at load
-          if (orgInput) setFieldUneditable(orgInput);
-          if (streetInput) setFieldUneditable(streetInput);
-          if (zipInput) setFieldUneditable(zipInput);
-          if (cityInput) setFieldUneditable(cityInput);
+        // Make fields uneditable at page load if configured
+        // Only apply if "uneditable" is checked but "uneditable_after_population" is NOT checked
+        if (orgInput && shouldBeUneditable('orgnr') && !shouldBeUneditableAfterPopulation('orgnr')) {
+          setFieldUneditable(orgInput);
+        }
+        if (streetInput && shouldBeUneditable('street') && !shouldBeUneditableAfterPopulation('street')) {
+          setFieldUneditable(streetInput);
+        }
+        if (zipInput && shouldBeUneditable('zip') && !shouldBeUneditableAfterPopulation('zip')) {
+          setFieldUneditable(zipInput);
+        }
+        if (cityInput && shouldBeUneditable('city') && !shouldBeUneditableAfterPopulation('city')) {
+          setFieldUneditable(cityInput);
+        }
+        if (emailInput && shouldBeUneditable('email') && !shouldBeUneditableAfterPopulation('email')) {
+          setFieldUneditable(emailInput);
         }
 
         // Wrap input so dropdown can position below
@@ -314,13 +333,25 @@
                     setValueOnField(cityInput, addr.city);
                   }
 
-                  // If "Make fields uneditable" is enabled AND "make_uneditable_after_population" is ticked,
-                  // make fields uneditable after population
-                  if (makeFieldsUneditable && makeUneditableAfterPopulation) {
-                    if (orgInput) setFieldUneditable(orgInput);
-                    if (streetInput) setFieldUneditable(streetInput);
-                    if (zipInput) setFieldUneditable(zipInput);
-                    if (cityInput) setFieldUneditable(cityInput);
+                  // Email field - uses company.epostadresse from Brreg API
+                  setValueOnField(emailInput, company.epostadresse || '');
+
+                  // Make fields uneditable after population if configured
+                  // Only apply if both "uneditable" and "uneditable_after_population" are checked
+                  if (orgInput && shouldBeUneditable('orgnr') && shouldBeUneditableAfterPopulation('orgnr')) {
+                    setFieldUneditable(orgInput);
+                  }
+                  if (streetInput && shouldBeUneditable('street') && shouldBeUneditableAfterPopulation('street')) {
+                    setFieldUneditable(streetInput);
+                  }
+                  if (zipInput && shouldBeUneditable('zip') && shouldBeUneditableAfterPopulation('zip')) {
+                    setFieldUneditable(zipInput);
+                  }
+                  if (cityInput && shouldBeUneditable('city') && shouldBeUneditableAfterPopulation('city')) {
+                    setFieldUneditable(cityInput);
+                  }
+                  if (emailInput && shouldBeUneditable('email') && shouldBeUneditableAfterPopulation('email')) {
+                    setFieldUneditable(emailInput);
                   }
 
                   dropdown.innerHTML = '';
@@ -352,13 +383,22 @@
           if (term.length === 0) {
             clearOutputFields();
 
-            // If "Make fields uneditable" is enabled AND "make_uneditable_after_population" is ticked,
-            // make fields editable again when company name is cleared
-            if (makeFieldsUneditable && makeUneditableAfterPopulation) {
-              if (orgInput) setFieldEditable(orgInput);
-              if (streetInput) setFieldEditable(streetInput);
-              if (zipInput) setFieldEditable(zipInput);
-              if (cityInput) setFieldEditable(cityInput);
+            // Make fields editable again when company name is cleared
+            // Only apply if both "uneditable" and "uneditable_after_population" are checked
+            if (orgInput && shouldBeUneditable('orgnr') && shouldBeUneditableAfterPopulation('orgnr')) {
+              setFieldEditable(orgInput);
+            }
+            if (streetInput && shouldBeUneditable('street') && shouldBeUneditableAfterPopulation('street')) {
+              setFieldEditable(streetInput);
+            }
+            if (zipInput && shouldBeUneditable('zip') && shouldBeUneditableAfterPopulation('zip')) {
+              setFieldEditable(zipInput);
+            }
+            if (cityInput && shouldBeUneditable('city') && shouldBeUneditableAfterPopulation('city')) {
+              setFieldEditable(cityInput);
+            }
+            if (emailInput && shouldBeUneditable('email') && shouldBeUneditableAfterPopulation('email')) {
+              setFieldEditable(emailInput);
             }
 
             dropdown.style.display = 'none';

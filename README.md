@@ -5,10 +5,10 @@ WordPress plugin that provides autocomplete functionality for Gravity Forms by f
 ## Features
 
 - **Autocomplete company search** - Search and select companies from Brønnøysund registry
-- **Auto-populate fields** - Automatically fills organization number, street, zip, and city
+- **Auto-populate fields** - Automatically fills organization number, street, zip, city, and email
 - **CSS class-based mapping** - Flexible field mapping via CSS classes
 - **Admin configuration** - Easy-to-use settings page for customizing CSS classes
-- **Make fields uneditable** - Option to lock output fields after population
+- **Per-field uneditable control** - Configure which fields should be locked, with options for locking at page load or after population
 
 ## Installation
 
@@ -27,15 +27,18 @@ In your Gravity Forms form editor, add CSS classes to your fields:
 - **Street address**: Add CSS class `invoice_street`
 - **Zip code**: Add CSS class `invoice_zip`
 - **City**: Add CSS class `invoice_city`
+- **Invoice email**: Add CSS class `invoice_email`
 
 ### 2. Configure in WordPress Admin
 
 Go to **Settings → Brreg GF Autocomplete** and:
 
 - Set the CSS class for your company name (trigger) field
-- Set CSS classes for output fields (orgnr, street, zip, city)
+- Set CSS classes for output fields (orgnr, street, zip, city, email)
 - Adjust minimum characters before search (default: 2)
-- Enable "Make fields uneditable" to lock output fields
+- Configure per-field uneditable settings in the Field Settings table:
+  - **Make Uneditable**: Lock the field at page load
+  - **Uneditable After Population**: Lock the field only after a company is selected (unlocks when cleared)
 
 ## Default CSS Classes
 
@@ -44,6 +47,7 @@ Go to **Settings → Brreg GF Autocomplete** and:
 - Street: `invoice_street`
 - Zip: `invoice_zip`
 - City: `invoice_city`
+- Email: `invoice_email`
 
 ## Requirements
 

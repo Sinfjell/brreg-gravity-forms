@@ -3,7 +3,7 @@
  * Plugin Name: Brønnøysund + Gravity Forms Autocomplete
  * Description: Autocomplete company info from Brønnøysund by using CSS classes on Gravity Forms fields.
  * Author: Nettsmed AS
- * Version: 0.1.0
+ * Version: 1.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,24 +28,41 @@ class Brreg_GravityForms_Autocomplete {
      */
     public static function get_config() {
         $defaults = self::get_default_config();
-        $saved = get_option( self::OPTION_NAME, array() );
+
+        // Run migration if needed (converts old global settings to per-field)
+        $saved = self::maybe_migrate_settings();
+
+        // Build field_settings from saved or defaults
+        $field_keys = array( 'orgnr', 'street', 'zip', 'city', 'email' );
+        $field_settings = array();
+
+        foreach ( $field_keys as $key ) {
+            $field_settings[ $key ] = array(
+                'uneditable' => isset( $saved['field_settings'][ $key ]['uneditable'] )
+                    ? (bool) $saved['field_settings'][ $key ]['uneditable']
+                    : $defaults['field_settings'][ $key ]['uneditable'],
+                'uneditable_after_population' => isset( $saved['field_settings'][ $key ]['uneditable_after_population'] )
+                    ? (bool) $saved['field_settings'][ $key ]['uneditable_after_population']
+                    : $defaults['field_settings'][ $key ]['uneditable_after_population'],
+            );
+        }
 
         // Merge saved settings with defaults
         $config = array(
             'profiles' => array(
                 array(
-                    'id'                    => 'default',
-                    'trigger_class'         => isset( $saved['trigger_class'] ) ? $saved['trigger_class'] : $defaults['trigger_class'],
-                    'min_chars'             => isset( $saved['min_chars'] ) ? intval( $saved['min_chars'] ) : $defaults['min_chars'],
-                    'outputs'               => array(
-                        'orgnr'  => isset( $saved['outputs']['orgnr'] ) ? $saved['outputs']['orgnr'] : $defaults['outputs']['orgnr'],
-                        'street' => isset( $saved['outputs']['street'] ) ? $saved['outputs']['street'] : $defaults['outputs']['street'],
-                        'zip'    => isset( $saved['outputs']['zip'] ) ? $saved['outputs']['zip'] : $defaults['outputs']['zip'],
-                        'city'   => isset( $saved['outputs']['city'] ) ? $saved['outputs']['city'] : $defaults['outputs']['city'],
+                    'id'             => 'default',
+                    'trigger_class'  => isset( $saved['trigger_class'] ) ? $saved['trigger_class'] : $defaults['trigger_class'],
+                    'min_chars'      => isset( $saved['min_chars'] ) ? intval( $saved['min_chars'] ) : $defaults['min_chars'],
+                    'outputs'        => array(
+                        'orgnr'  => ! empty( $saved['outputs']['orgnr'] ) ? $saved['outputs']['orgnr'] : $defaults['outputs']['orgnr'],
+                        'street' => ! empty( $saved['outputs']['street'] ) ? $saved['outputs']['street'] : $defaults['outputs']['street'],
+                        'zip'    => ! empty( $saved['outputs']['zip'] ) ? $saved['outputs']['zip'] : $defaults['outputs']['zip'],
+                        'city'   => ! empty( $saved['outputs']['city'] ) ? $saved['outputs']['city'] : $defaults['outputs']['city'],
+                        'email'  => ! empty( $saved['outputs']['email'] ) ? $saved['outputs']['email'] : $defaults['outputs']['email'],
                     ),
-                    'make_fields_uneditable' => isset( $saved['make_fields_uneditable'] ) ? (bool) $saved['make_fields_uneditable'] : $defaults['make_fields_uneditable'],
-                    'make_uneditable_after_population' => isset( $saved['make_uneditable_after_population'] ) ? (bool) $saved['make_uneditable_after_population'] : $defaults['make_uneditable_after_population'],
-                    'conditions'            => array(),
+                    'field_settings' => $field_settings,
+                    'conditions'     => array(),
                 ),
             ),
         );
@@ -61,17 +78,62 @@ class Brreg_GravityForms_Autocomplete {
      */
     private static function get_default_config() {
         return array(
-            'trigger_class'         => 'bedrift',
-            'min_chars'             => 2,
-            'outputs'               => array(
+            'trigger_class'  => 'bedrift',
+            'min_chars'      => 2,
+            'outputs'        => array(
                 'orgnr'  => 'org_nummer',
                 'street' => 'invoice_street',
                 'zip'    => 'invoice_zip',
                 'city'   => 'invoice_city',
+                'email'  => 'invoice_email',
             ),
-            'make_fields_uneditable' => false,
-            'make_uneditable_after_population' => false,
+            'field_settings' => array(
+                'orgnr'  => array( 'uneditable' => false, 'uneditable_after_population' => false ),
+                'street' => array( 'uneditable' => false, 'uneditable_after_population' => false ),
+                'zip'    => array( 'uneditable' => false, 'uneditable_after_population' => false ),
+                'city'   => array( 'uneditable' => false, 'uneditable_after_population' => false ),
+                'email'  => array( 'uneditable' => false, 'uneditable_after_population' => false ),
+            ),
         );
+    }
+
+    /**
+     * Migrate old global uneditable settings to new per-field settings.
+     * This ensures backward compatibility for existing installations.
+     */
+    private static function maybe_migrate_settings() {
+        $saved = get_option( self::OPTION_NAME, array() );
+
+        // Check if migration is needed: old settings exist but new field_settings doesn't
+        $has_old_settings = isset( $saved['make_fields_uneditable'] ) || isset( $saved['make_uneditable_after_population'] );
+        $has_new_settings = isset( $saved['field_settings'] );
+
+        if ( $has_old_settings && ! $has_new_settings ) {
+            $make_uneditable       = ! empty( $saved['make_fields_uneditable'] );
+            $uneditable_after_pop  = ! empty( $saved['make_uneditable_after_population'] );
+
+            // Build per-field settings from old global settings
+            $field_keys = array( 'orgnr', 'street', 'zip', 'city', 'email' );
+            $field_settings = array();
+
+            foreach ( $field_keys as $key ) {
+                $field_settings[ $key ] = array(
+                    'uneditable'                 => $make_uneditable,
+                    'uneditable_after_population' => $uneditable_after_pop,
+                );
+            }
+
+            // Save migrated settings
+            $saved['field_settings'] = $field_settings;
+
+            // Remove old settings
+            unset( $saved['make_fields_uneditable'] );
+            unset( $saved['make_uneditable_after_population'] );
+
+            update_option( self::OPTION_NAME, $saved );
+        }
+
+        return $saved;
     }
 
     /**
@@ -132,8 +194,16 @@ class Brreg_GravityForms_Autocomplete {
             }
         }
 
-        $sanitized['make_fields_uneditable'] = isset( $input['make_fields_uneditable'] ) ? 1 : 0;
-        $sanitized['make_uneditable_after_population'] = isset( $input['make_uneditable_after_population'] ) ? 1 : 0;
+        // Sanitize per-field settings
+        $field_keys = array( 'orgnr', 'street', 'zip', 'city', 'email' );
+        $sanitized['field_settings'] = array();
+
+        foreach ( $field_keys as $key ) {
+            $sanitized['field_settings'][ $key ] = array(
+                'uneditable'                 => isset( $input['field_settings'][ $key ]['uneditable'] ) ? 1 : 0,
+                'uneditable_after_population' => isset( $input['field_settings'][ $key ]['uneditable_after_population'] ) ? 1 : 0,
+            );
+        }
 
         return $sanitized;
     }
@@ -150,7 +220,7 @@ class Brreg_GravityForms_Autocomplete {
             'brreg-gf-admin',
             plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
             array(),
-            '0.1.0'
+            '1.1.0'
         );
     }
 
@@ -162,7 +232,25 @@ class Brreg_GravityForms_Autocomplete {
             return;
         }
 
-        $settings = get_option( self::OPTION_NAME, self::get_default_config() );
+        // Run migration if needed (converts old global settings to per-field)
+        self::maybe_migrate_settings();
+
+        $defaults = self::get_default_config();
+        $saved    = get_option( self::OPTION_NAME, array() );
+
+        // Merge saved settings with defaults to ensure all keys exist
+        $settings = array(
+            'trigger_class'  => ! empty( $saved['trigger_class'] ) ? $saved['trigger_class'] : $defaults['trigger_class'],
+            'min_chars'      => isset( $saved['min_chars'] ) ? $saved['min_chars'] : $defaults['min_chars'],
+            'outputs'        => array(
+                'orgnr'  => ! empty( $saved['outputs']['orgnr'] ) ? $saved['outputs']['orgnr'] : $defaults['outputs']['orgnr'],
+                'street' => ! empty( $saved['outputs']['street'] ) ? $saved['outputs']['street'] : $defaults['outputs']['street'],
+                'zip'    => ! empty( $saved['outputs']['zip'] ) ? $saved['outputs']['zip'] : $defaults['outputs']['zip'],
+                'city'   => ! empty( $saved['outputs']['city'] ) ? $saved['outputs']['city'] : $defaults['outputs']['city'],
+                'email'  => ! empty( $saved['outputs']['email'] ) ? $saved['outputs']['email'] : $defaults['outputs']['email'],
+            ),
+            'field_settings' => isset( $saved['field_settings'] ) ? $saved['field_settings'] : $defaults['field_settings'],
+        );
         ?>
         <div class="wrap brreg-gf-autocomplete-settings">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -238,13 +326,26 @@ class Brreg_GravityForms_Autocomplete {
                                     <p>
                                         <label for="output_city">
                                             <?php esc_html_e( 'City:', 'brreg-gf-autocomplete' ); ?>
-                                            <input 
-                                                type="text" 
-                                                id="output_city" 
-                                                name="<?php echo esc_attr( self::OPTION_NAME ); ?>[outputs][city]" 
-                                                value="<?php echo esc_attr( $settings['outputs']['city'] ); ?>" 
+                                            <input
+                                                type="text"
+                                                id="output_city"
+                                                name="<?php echo esc_attr( self::OPTION_NAME ); ?>[outputs][city]"
+                                                value="<?php echo esc_attr( $settings['outputs']['city'] ); ?>"
                                                 class="regular-text"
                                                 placeholder="invoice_city"
+                                            />
+                                        </label>
+                                    </p>
+                                    <p>
+                                        <label for="output_email">
+                                            <?php esc_html_e( 'Invoice Email:', 'brreg-gf-autocomplete' ); ?>
+                                            <input
+                                                type="text"
+                                                id="output_email"
+                                                name="<?php echo esc_attr( self::OPTION_NAME ); ?>[outputs][email]"
+                                                value="<?php echo esc_attr( $settings['outputs']['email'] ); ?>"
+                                                class="regular-text"
+                                                placeholder="invoice_email"
                                             />
                                         </label>
                                     </p>
@@ -275,46 +376,70 @@ class Brreg_GravityForms_Autocomplete {
                         </tr>
                         <tr>
                             <th scope="row">
-                                <label for="make_fields_uneditable"><?php esc_html_e( 'Make Fields Uneditable', 'brreg-gf-autocomplete' ); ?></label>
+                                <?php esc_html_e( 'Field Settings', 'brreg-gf-autocomplete' ); ?>
                             </th>
                             <td>
-                                <fieldset>
-                                    <label for="make_fields_uneditable">
-                                        <input 
-                                            type="checkbox" 
-                                            id="make_fields_uneditable" 
-                                            name="<?php echo esc_attr( self::OPTION_NAME ); ?>[make_fields_uneditable]" 
-                                            value="1"
-                                            <?php checked( ! empty( $settings['make_fields_uneditable'] ) ); ?>
-                                        />
-                                        <?php esc_html_e( 'Make output fields uneditable (greyed out and locked from editing)', 'brreg-gf-autocomplete' ); ?>
-                                    </label>
-                                    <p class="description">
-                                        <?php esc_html_e( 'When enabled, the output fields (organization number, street, zip, city) will be disabled and visually greyed out.', 'brreg-gf-autocomplete' ); ?>
-                                    </p>
-                                </fieldset>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <label for="make_uneditable_after_population"><?php esc_html_e( 'Make Uneditable After Population', 'brreg-gf-autocomplete' ); ?></label>
-                            </th>
-                            <td>
-                                <fieldset>
-                                    <label for="make_uneditable_after_population">
-                                        <input 
-                                            type="checkbox" 
-                                            id="make_uneditable_after_population" 
-                                            name="<?php echo esc_attr( self::OPTION_NAME ); ?>[make_uneditable_after_population]" 
-                                            value="1"
-                                            <?php checked( ! empty( $settings['make_uneditable_after_population'] ) ); ?>
-                                        />
-                                        <?php esc_html_e( 'Make fields uneditable after population (instead of at load)', 'brreg-gf-autocomplete' ); ?>
-                                    </label>
-                                    <p class="description">
-                                        <?php esc_html_e( 'If ticked, fields are made uneditable after they are populated with company data. If not ticked, fields are made uneditable at page load (when "Make Fields Uneditable" is enabled).', 'brreg-gf-autocomplete' ); ?>
-                                    </p>
-                                </fieldset>
+                                <?php
+                                $field_labels = array(
+                                    'orgnr'  => __( 'Organization Number', 'brreg-gf-autocomplete' ),
+                                    'street' => __( 'Street Address', 'brreg-gf-autocomplete' ),
+                                    'zip'    => __( 'Zip Code', 'brreg-gf-autocomplete' ),
+                                    'city'   => __( 'City', 'brreg-gf-autocomplete' ),
+                                    'email'  => __( 'Invoice Email', 'brreg-gf-autocomplete' ),
+                                );
+
+                                // Ensure field_settings exists with proper structure
+                                $field_settings = isset( $settings['field_settings'] ) ? $settings['field_settings'] : array();
+                                ?>
+                                <table class="brreg-field-settings-table widefat">
+                                    <thead>
+                                        <tr>
+                                            <th><?php esc_html_e( 'Output Field', 'brreg-gf-autocomplete' ); ?></th>
+                                            <th><?php esc_html_e( 'CSS Class', 'brreg-gf-autocomplete' ); ?></th>
+                                            <th>
+                                                <?php esc_html_e( 'Make Uneditable', 'brreg-gf-autocomplete' ); ?>
+                                                <br><small><a href="#" class="brreg-select-all" data-column="uneditable"><?php esc_html_e( 'Select All', 'brreg-gf-autocomplete' ); ?></a> | <a href="#" class="brreg-deselect-all" data-column="uneditable"><?php esc_html_e( 'Deselect All', 'brreg-gf-autocomplete' ); ?></a></small>
+                                            </th>
+                                            <th>
+                                                <?php esc_html_e( 'Uneditable After Population', 'brreg-gf-autocomplete' ); ?>
+                                                <br><small><a href="#" class="brreg-select-all" data-column="uneditable_after_population"><?php esc_html_e( 'Select All', 'brreg-gf-autocomplete' ); ?></a> | <a href="#" class="brreg-deselect-all" data-column="uneditable_after_population"><?php esc_html_e( 'Deselect All', 'brreg-gf-autocomplete' ); ?></a></small>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ( $field_labels as $key => $label ) :
+                                            $css_class = isset( $settings['outputs'][ $key ] ) ? $settings['outputs'][ $key ] : '';
+                                            $is_uneditable = ! empty( $field_settings[ $key ]['uneditable'] );
+                                            $is_uneditable_after = ! empty( $field_settings[ $key ]['uneditable_after_population'] );
+                                        ?>
+                                        <tr>
+                                            <td><strong><?php echo esc_html( $label ); ?></strong></td>
+                                            <td><code><?php echo esc_html( $css_class ); ?></code></td>
+                                            <td class="checkbox-cell">
+                                                <input
+                                                    type="checkbox"
+                                                    name="<?php echo esc_attr( self::OPTION_NAME ); ?>[field_settings][<?php echo esc_attr( $key ); ?>][uneditable]"
+                                                    value="1"
+                                                    data-column="uneditable"
+                                                    <?php checked( $is_uneditable ); ?>
+                                                />
+                                            </td>
+                                            <td class="checkbox-cell">
+                                                <input
+                                                    type="checkbox"
+                                                    name="<?php echo esc_attr( self::OPTION_NAME ); ?>[field_settings][<?php echo esc_attr( $key ); ?>][uneditable_after_population]"
+                                                    value="1"
+                                                    data-column="uneditable_after_population"
+                                                    <?php checked( $is_uneditable_after ); ?>
+                                                />
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                                <p class="description">
+                                    <?php esc_html_e( 'Configure which fields should be made uneditable (read-only). Check "Make Uneditable" to enable locking for a field. By default, fields are locked at page load. Additionally check "Uneditable After Population" to delay locking until a company is selected (fields unlock when cleared).', 'brreg-gf-autocomplete' ); ?>
+                                </p>
                             </td>
                         </tr>
                     </tbody>
@@ -322,6 +447,33 @@ class Brreg_GravityForms_Autocomplete {
                 <?php submit_button(); ?>
             </form>
         </div>
+        <script>
+        (function() {
+            document.addEventListener('DOMContentLoaded', function() {
+                // Select All links
+                document.querySelectorAll('.brreg-select-all').forEach(function(link) {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        var column = this.getAttribute('data-column');
+                        document.querySelectorAll('input[data-column="' + column + '"]').forEach(function(checkbox) {
+                            checkbox.checked = true;
+                        });
+                    });
+                });
+
+                // Deselect All links
+                document.querySelectorAll('.brreg-deselect-all').forEach(function(link) {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        var column = this.getAttribute('data-column');
+                        document.querySelectorAll('input[data-column="' + column + '"]').forEach(function(checkbox) {
+                            checkbox.checked = false;
+                        });
+                    });
+                });
+            });
+        })();
+        </script>
         <?php
     }
 
@@ -348,14 +500,14 @@ class Brreg_GravityForms_Autocomplete {
             'brreg-gf-frontend',
             plugin_dir_url( __FILE__ ) . 'assets/css/frontend.css',
             array(),
-            '0.1.0'
+            '1.1.0'
         );
 
         wp_enqueue_script(
             $handle,
             plugin_dir_url( __FILE__ ) . 'assets/js/brreg-gf-autocomplete.js',
             array(), // no dependencies
-            '0.1.0',
+            '1.1.0',
             true
         );
 

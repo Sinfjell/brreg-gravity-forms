@@ -3,7 +3,7 @@
  * Plugin Name: Brønnøysund + Gravity Forms Autocomplete
  * Description: Autocomplete company info from Brønnøysund by using CSS classes on Gravity Forms fields.
  * Author: Nettsmed AS
- * Version: 1.1.0
+ * Version: 1.2.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -61,8 +61,10 @@ class Brreg_GravityForms_Autocomplete {
                         'city'   => ! empty( $saved['outputs']['city'] ) ? $saved['outputs']['city'] : $defaults['outputs']['city'],
                         'email'  => ! empty( $saved['outputs']['email'] ) ? $saved['outputs']['email'] : $defaults['outputs']['email'],
                     ),
-                    'field_settings' => $field_settings,
-                    'conditions'     => array(),
+                    'field_settings'     => $field_settings,
+                    'bypass_field_class' => isset( $saved['bypass_field_class'] ) ? $saved['bypass_field_class'] : $defaults['bypass_field_class'],
+                    'bypass_value'       => isset( $saved['bypass_value'] ) ? $saved['bypass_value'] : $defaults['bypass_value'],
+                    'conditions'         => array(),
                 ),
             ),
         );
@@ -94,6 +96,8 @@ class Brreg_GravityForms_Autocomplete {
                 'city'   => array( 'uneditable' => false, 'uneditable_after_population' => false ),
                 'email'  => array( 'uneditable' => false, 'uneditable_after_population' => false ),
             ),
+            'bypass_field_class' => '',
+            'bypass_value'       => '',
         );
     }
 
@@ -205,6 +209,9 @@ class Brreg_GravityForms_Autocomplete {
             );
         }
 
+        $sanitized['bypass_field_class'] = isset( $input['bypass_field_class'] ) ? sanitize_html_class( $input['bypass_field_class'] ) : '';
+        $sanitized['bypass_value'] = isset( $input['bypass_value'] ) ? sanitize_text_field( $input['bypass_value'] ) : '';
+
         return $sanitized;
     }
 
@@ -220,7 +227,7 @@ class Brreg_GravityForms_Autocomplete {
             'brreg-gf-admin',
             plugin_dir_url( __FILE__ ) . 'assets/css/admin.css',
             array(),
-            '1.1.0'
+            '1.2.0'
         );
     }
 
@@ -249,7 +256,9 @@ class Brreg_GravityForms_Autocomplete {
                 'city'   => ! empty( $saved['outputs']['city'] ) ? $saved['outputs']['city'] : $defaults['outputs']['city'],
                 'email'  => ! empty( $saved['outputs']['email'] ) ? $saved['outputs']['email'] : $defaults['outputs']['email'],
             ),
-            'field_settings' => isset( $saved['field_settings'] ) ? $saved['field_settings'] : $defaults['field_settings'],
+            'field_settings'     => isset( $saved['field_settings'] ) ? $saved['field_settings'] : $defaults['field_settings'],
+            'bypass_field_class' => isset( $saved['bypass_field_class'] ) ? $saved['bypass_field_class'] : $defaults['bypass_field_class'],
+            'bypass_value'       => isset( $saved['bypass_value'] ) ? $saved['bypass_value'] : $defaults['bypass_value'],
         );
         ?>
         <div class="wrap brreg-gf-autocomplete-settings">
@@ -442,6 +451,42 @@ class Brreg_GravityForms_Autocomplete {
                                 </p>
                             </td>
                         </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="bypass_field_class"><?php esc_html_e( 'Bypass Field CSS Class', 'brreg-gf-autocomplete' ); ?></label>
+                            </th>
+                            <td>
+                                <input
+                                    type="text"
+                                    id="bypass_field_class"
+                                    name="<?php echo esc_attr( self::OPTION_NAME ); ?>[bypass_field_class]"
+                                    value="<?php echo esc_attr( $settings['bypass_field_class'] ); ?>"
+                                    class="regular-text"
+                                    placeholder="privat_betaling"
+                                />
+                                <p class="description">
+                                    <?php esc_html_e( 'CSS class of a radio/select/checkbox field that switches to "org-only" mode (e.g. "Betaler du privat?"). When active, only org number is populated from Brønnøysund — address fields stay editable for manual entry.', 'brreg-gf-autocomplete' ); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="bypass_value"><?php esc_html_e( 'Bypass Value', 'brreg-gf-autocomplete' ); ?></label>
+                            </th>
+                            <td>
+                                <input
+                                    type="text"
+                                    id="bypass_value"
+                                    name="<?php echo esc_attr( self::OPTION_NAME ); ?>[bypass_value]"
+                                    value="<?php echo esc_attr( $settings['bypass_value'] ); ?>"
+                                    class="regular-text"
+                                    placeholder="Ja"
+                                />
+                                <p class="description">
+                                    <?php esc_html_e( 'When the bypass field has this value, only org number is populated. Address fields remain editable for the user to fill in manually.', 'brreg-gf-autocomplete' ); ?>
+                                </p>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
                 <?php submit_button(); ?>
@@ -500,14 +545,14 @@ class Brreg_GravityForms_Autocomplete {
             'brreg-gf-frontend',
             plugin_dir_url( __FILE__ ) . 'assets/css/frontend.css',
             array(),
-            '1.1.0'
+            '1.2.0'
         );
 
         wp_enqueue_script(
             $handle,
             plugin_dir_url( __FILE__ ) . 'assets/js/brreg-gf-autocomplete.js',
             array(), // no dependencies
-            '1.1.0',
+            '1.2.0',
             true
         );
 

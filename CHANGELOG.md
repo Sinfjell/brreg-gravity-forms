@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.0
+
+### Added
+- **Bypass mode for private payment**: New "Bypass Field CSS Class" and "Bypass Value" settings. When the configured field (e.g. "Betaler du privat?") matches the bypass value (e.g. "Ja"), only the org number is populated from Brreg — address and email fields stay editable for manual entry.
+
 ## 1.1.0
 
 ### Added

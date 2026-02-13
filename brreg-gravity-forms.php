@@ -45,6 +45,8 @@ class Brreg_GravityForms_Autocomplete {
                     ),
                     'make_fields_uneditable' => isset( $saved['make_fields_uneditable'] ) ? (bool) $saved['make_fields_uneditable'] : $defaults['make_fields_uneditable'],
                     'make_uneditable_after_population' => isset( $saved['make_uneditable_after_population'] ) ? (bool) $saved['make_uneditable_after_population'] : $defaults['make_uneditable_after_population'],
+                    'bypass_field_class'    => isset( $saved['bypass_field_class'] ) ? $saved['bypass_field_class'] : $defaults['bypass_field_class'],
+                    'bypass_value'          => isset( $saved['bypass_value'] ) ? $saved['bypass_value'] : $defaults['bypass_value'],
                     'conditions'            => array(),
                 ),
             ),
@@ -71,6 +73,8 @@ class Brreg_GravityForms_Autocomplete {
             ),
             'make_fields_uneditable' => false,
             'make_uneditable_after_population' => false,
+            'bypass_field_class' => '',
+            'bypass_value'       => '',
         );
     }
 
@@ -134,6 +138,8 @@ class Brreg_GravityForms_Autocomplete {
 
         $sanitized['make_fields_uneditable'] = isset( $input['make_fields_uneditable'] ) ? 1 : 0;
         $sanitized['make_uneditable_after_population'] = isset( $input['make_uneditable_after_population'] ) ? 1 : 0;
+        $sanitized['bypass_field_class'] = isset( $input['bypass_field_class'] ) ? sanitize_html_class( $input['bypass_field_class'] ) : '';
+        $sanitized['bypass_value'] = isset( $input['bypass_value'] ) ? sanitize_text_field( $input['bypass_value'] ) : '';
 
         return $sanitized;
     }
@@ -315,6 +321,42 @@ class Brreg_GravityForms_Autocomplete {
                                         <?php esc_html_e( 'If ticked, fields are made uneditable after they are populated with company data. If not ticked, fields are made uneditable at page load (when "Make Fields Uneditable" is enabled).', 'brreg-gf-autocomplete' ); ?>
                                     </p>
                                 </fieldset>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="bypass_field_class"><?php esc_html_e( 'Bypass Field CSS Class', 'brreg-gf-autocomplete' ); ?></label>
+                            </th>
+                            <td>
+                                <input
+                                    type="text"
+                                    id="bypass_field_class"
+                                    name="<?php echo esc_attr( self::OPTION_NAME ); ?>[bypass_field_class]"
+                                    value="<?php echo esc_attr( isset( $settings['bypass_field_class'] ) ? $settings['bypass_field_class'] : '' ); ?>"
+                                    class="regular-text"
+                                    placeholder="privat_betaling"
+                                />
+                                <p class="description">
+                                    <?php esc_html_e( 'CSS class of a radio/select/checkbox field that can disable the Brønnøysund lookup dynamically (e.g. "Betaler du privat?").', 'brreg-gf-autocomplete' ); ?>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="bypass_value"><?php esc_html_e( 'Bypass Value', 'brreg-gf-autocomplete' ); ?></label>
+                            </th>
+                            <td>
+                                <input
+                                    type="text"
+                                    id="bypass_value"
+                                    name="<?php echo esc_attr( self::OPTION_NAME ); ?>[bypass_value]"
+                                    value="<?php echo esc_attr( isset( $settings['bypass_value'] ) ? $settings['bypass_value'] : '' ); ?>"
+                                    class="regular-text"
+                                    placeholder="Ja"
+                                />
+                                <p class="description">
+                                    <?php esc_html_e( 'When the bypass field has this value, the Brønnøysund lookup is disabled and output fields become editable free-text.', 'brreg-gf-autocomplete' ); ?>
+                                </p>
                             </td>
                         </tr>
                     </tbody>

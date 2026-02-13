@@ -146,8 +146,88 @@
           }
         }
 
+        // --- Bypass field logic ---
+        const bypassFieldClass = profile.bypass_field_class || '';
+        const bypassValue = profile.bypass_value || '';
+        let bypassActive = false;
+
+        function getBypassFieldValue(bypassWrapper) {
+          const checkedRadio = bypassWrapper.querySelector('input[type="radio"]:checked');
+          if (checkedRadio) return checkedRadio.value;
+          const checkedCheckbox = bypassWrapper.querySelector('input[type="checkbox"]:checked');
+          if (checkedCheckbox) return checkedCheckbox.value;
+          const select = bypassWrapper.querySelector('select');
+          if (select) return select.value;
+          const textInput = bypassWrapper.querySelector('input[type="text"]');
+          if (textInput) return textInput.value;
+          return '';
+        }
+
+        function activateBypass() {
+          bypassActive = true;
+          companyInput.value = '';
+          companyInput.dispatchEvent(new Event('change'));
+          clearOutputFields();
+          if (dropdown) {
+            dropdown.style.display = 'none';
+          }
+          // Make address/email fields editable (user enters their own private address)
+          if (streetInput) setFieldEditable(streetInput);
+          if (zipInput) setFieldEditable(zipInput);
+          if (cityInput) setFieldEditable(cityInput);
+          if (emailInput) setFieldEditable(emailInput);
+          // Org field stays normal (editable until populated)
+          if (orgInput) setFieldEditable(orgInput);
+        }
+
+        function deactivateBypass() {
+          bypassActive = false;
+          companyInput.value = '';
+          companyInput.dispatchEvent(new Event('change'));
+          clearOutputFields();
+          if (dropdown) {
+            dropdown.style.display = 'none';
+          }
+          // Restore fields to their configured editable/uneditable state
+          var fields = [
+            { input: orgInput, key: 'orgnr' },
+            { input: streetInput, key: 'street' },
+            { input: zipInput, key: 'zip' },
+            { input: cityInput, key: 'city' },
+            { input: emailInput, key: 'email' },
+          ];
+          fields.forEach(function (f) {
+            if (!f.input) return;
+            if (shouldBeUneditable(f.key) && !shouldBeUneditableAfterPopulation(f.key)) {
+              setFieldUneditable(f.input);
+            } else {
+              setFieldEditable(f.input);
+            }
+          });
+        }
+
+        if (bypassFieldClass && bypassValue) {
+          var bypassWrapper = root.querySelector('.' + bypassFieldClass);
+          if (bypassWrapper) {
+            var bypassInputs = bypassWrapper.querySelectorAll(
+              'input[type="radio"], input[type="checkbox"], select, input[type="text"]'
+            );
+            bypassInputs.forEach(function (el) {
+              el.addEventListener('change', function () {
+                var currentVal = getBypassFieldValue(bypassWrapper);
+                if (currentVal === bypassValue) {
+                  activateBypass();
+                } else {
+                  deactivateBypass();
+                }
+              });
+            });
+          }
+        }
+
         // Make fields uneditable at page load if configured
         // Only apply if "uneditable" is checked but "uneditable_after_population" is NOT checked
+        // Skip if bypass is currently active
         if (orgInput && shouldBeUneditable('orgnr') && !shouldBeUneditableAfterPopulation('orgnr')) {
           setFieldUneditable(orgInput);
         }
@@ -187,6 +267,17 @@
         dropdown.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
 
         wrapper.appendChild(dropdown);
+
+        // Check initial bypass state on load (after dropdown is available)
+        if (bypassFieldClass && bypassValue) {
+          var bypassWrapperInit = root.querySelector('.' + bypassFieldClass);
+          if (bypassWrapperInit) {
+            var initialVal = getBypassFieldValue(bypassWrapperInit);
+            if (initialVal === bypassValue) {
+              activateBypass();
+            }
+          }
+        }
 
         // Function to calculate and set dropdown width dynamically
         // This ensures we get accurate width even if calculated before input is fully rendered
@@ -322,36 +413,38 @@
                     input.dispatchEvent(new Event('change'));
                   }
 
-                  // Org number
+                  // Org number — always populated
                   setValueOnField(orgInput, company.organisasjonsnummer);
 
-                  // Address fields
-                  const addr = getBestAddress(company);
-                  if (addr) {
-                    setValueOnField(streetInput, addr.street);
-                    setValueOnField(zipInput, addr.zip);
-                    setValueOnField(cityInput, addr.city);
+                  // Address/email fields — only populate when bypass is NOT active
+                  if (!bypassActive) {
+                    const addr = getBestAddress(company);
+                    if (addr) {
+                      setValueOnField(streetInput, addr.street);
+                      setValueOnField(zipInput, addr.zip);
+                      setValueOnField(cityInput, addr.city);
+                    }
+                    setValueOnField(emailInput, company.epostadresse || '');
                   }
-
-                  // Email field - uses company.epostadresse from Brreg API
-                  setValueOnField(emailInput, company.epostadresse || '');
 
                   // Make fields uneditable after population if configured
                   // Only apply if both "uneditable" and "uneditable_after_population" are checked
                   if (orgInput && shouldBeUneditable('orgnr') && shouldBeUneditableAfterPopulation('orgnr')) {
                     setFieldUneditable(orgInput);
                   }
-                  if (streetInput && shouldBeUneditable('street') && shouldBeUneditableAfterPopulation('street')) {
-                    setFieldUneditable(streetInput);
-                  }
-                  if (zipInput && shouldBeUneditable('zip') && shouldBeUneditableAfterPopulation('zip')) {
-                    setFieldUneditable(zipInput);
-                  }
-                  if (cityInput && shouldBeUneditable('city') && shouldBeUneditableAfterPopulation('city')) {
-                    setFieldUneditable(cityInput);
-                  }
-                  if (emailInput && shouldBeUneditable('email') && shouldBeUneditableAfterPopulation('email')) {
-                    setFieldUneditable(emailInput);
+                  if (!bypassActive) {
+                    if (streetInput && shouldBeUneditable('street') && shouldBeUneditableAfterPopulation('street')) {
+                      setFieldUneditable(streetInput);
+                    }
+                    if (zipInput && shouldBeUneditable('zip') && shouldBeUneditableAfterPopulation('zip')) {
+                      setFieldUneditable(zipInput);
+                    }
+                    if (cityInput && shouldBeUneditable('city') && shouldBeUneditableAfterPopulation('city')) {
+                      setFieldUneditable(cityInput);
+                    }
+                    if (emailInput && shouldBeUneditable('email') && shouldBeUneditableAfterPopulation('email')) {
+                      setFieldUneditable(emailInput);
+                    }
                   }
 
                   dropdown.innerHTML = '';
